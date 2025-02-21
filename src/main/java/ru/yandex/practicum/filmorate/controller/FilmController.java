@@ -31,8 +31,6 @@ public class FilmController {
         }
         film.setId(getNextId());
         films.put(film.getId(), film);
-        film.setId(getNextId());
-        films.put(film.getId(), film);
         log.info("Фильм: '{}', успешно добавлен в коллекцию", film.getName());
         return film;
     }
