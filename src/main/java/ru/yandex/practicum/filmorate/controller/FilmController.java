@@ -1,11 +1,11 @@
 package ru.yandex.practicum.filmorate.controller;
 
 import jakarta.validation.Valid;
-import jakarta.validation.ValidationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
+import ru.yandex.practicum.filmorate.exception.NotFoundException;
+import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
-
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -45,7 +45,7 @@ public class FilmController {
         Film filmWithOldData = films.get(filmWithNewData.getId());
         if (filmWithOldData == null) {
             log.error("Ошибка обновления: фильм не найден");
-            throw new ValidationException("Фильм не найден");
+            throw new NotFoundException("Фильм не найден");
         }
         // меняем релиз-дату
         if (filmWithNewData.isValidReleaseDate()) {
