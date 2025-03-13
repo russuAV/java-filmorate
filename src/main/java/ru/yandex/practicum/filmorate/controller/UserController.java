@@ -29,29 +29,29 @@ private final UserService userService;
     }
 
     @GetMapping("/{id}")
-    public User getUserById (@PathVariable Long id) {
+    public User getUserById(@PathVariable Long id) {
         return userStorage.getUserById(id);
     }
 
     @PutMapping("/{id}/friends/{friendId}")
-    public void addFriend (@PathVariable Long id,
-                           @PathVariable Long friendId) {
+    public void addFriend(@PathVariable Long id,
+                          @PathVariable Long friendId) {
         userService.addFriend(id, friendId);
     }
 
     @DeleteMapping("/{id}/friends/{friendId}")
-    public void deleteFriend (@PathVariable Long id,
+    public void deleteFriend(@PathVariable Long id,
                               @PathVariable Long friendId) {
         userService.deleteFriend(id, friendId);
     }
 
     @GetMapping("/{id}/friends")
-    public List<User> getUserFriends (@PathVariable Long id) {
+    public List<User> getUserFriends(@PathVariable Long id) {
         return userService.getFriends(id);
     }
 
     @GetMapping("/{id}/friends/common/{friendId}")
-    public List<User> getCommonFriends (@PathVariable Long id,
+    public List<User> getCommonFriends(@PathVariable Long id,
                                        @PathVariable Long friendId) {
         return userService.getCommonFriends(id, friendId);
     }

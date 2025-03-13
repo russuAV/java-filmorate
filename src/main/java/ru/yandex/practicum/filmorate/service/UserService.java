@@ -38,7 +38,7 @@ public class UserService {
         log.info("Пользователь {} успешно добавил в друзья пользователя {}", id, friendId);
     }
 
-    public List<User> getFriends (Long id) {
+    public List<User> getFriends(Long id) {
         log.debug("Попытка получить список друзей пользователя с id {}", id);
         User user = userStorage.getUserById(id);
         Set<Long> friendIds = user.getFriends();
@@ -49,7 +49,7 @@ public class UserService {
                 .toList();
     }
 
-    public List<User> getCommonFriends (Long id, Long friendsId) {
+    public List<User> getCommonFriends(Long id, Long friendsId) {
         log.debug("Запрос на получение списка общих друзей");
         User[] users = validateAndGetUsers(id, friendsId);
         User user1 = users[0];
@@ -67,7 +67,7 @@ public class UserService {
                 .toList();
     }
 
-    public void deleteFriend (Long id, Long friendsId) {
+    public void deleteFriend(Long id, Long friendsId) {
         log.debug("Попытка пользователя {} удалить из друзей пользователя {}", id, friendsId);
         User[] users = validateAndGetUsers(id, friendsId);
         User user1 = users[0];
@@ -84,7 +84,7 @@ public class UserService {
         log.info("Пользователь {} успешно удалил из друзей пользователя {}", id, friendsId);
     }
 
-    private User[] validateAndGetUsers (Long id, Long friendsId) {
+    private User[] validateAndGetUsers(Long id, Long friendsId) {
         log.trace("Валидация существования пользователей с id {} и {}", id, friendsId);
         if (id == null || friendsId == null) {
             log.error("Отсутствует информация об ID");

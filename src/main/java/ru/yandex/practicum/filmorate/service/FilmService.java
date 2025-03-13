@@ -24,7 +24,7 @@ public class FilmService {
         this.userStorage = userStorage;
     }
 
-    public void addLike (Long filmId, Long userId) {
+    public void addLike(Long filmId, Long userId) {
         log.debug("Попытка добавить лайк фильму {} от пользователя {}.", filmId, userId);
         validateFilmAndUserExist(filmId, userId);
         Film film = filmStorage.getFilmById(filmId);
@@ -36,7 +36,7 @@ public class FilmService {
         log.info("Пользователь {} поставил лайк фильму {}.", userId, filmId);
     }
 
-    public void deleteLike (Long filmId, Long userId) {
+    public void deleteLike(Long filmId, Long userId) {
         log.debug("Попытка удалить лайк у фильма {} от пользователя {}.", filmId, userId);
         validateFilmAndUserExist(filmId, userId);
         Film film = filmStorage.getFilmById(filmId);
@@ -48,7 +48,7 @@ public class FilmService {
         log.info("Пользователь {} удалил лайк у фильма {}.", userId, filmId);
     }
 
-    public List<Film> getTopFilms (int count) {
+    public List<Film> getTopFilms(int count) {
         log.debug("Запрос на получение топ фильмов");
         List<Film> topFilms = filmStorage.findAll().stream()
                 .sorted(Comparator.comparingInt(film -> -film.getLikes().size()))
@@ -58,7 +58,7 @@ public class FilmService {
         return topFilms;
     }
 
-    public void validateFilmAndUserExist (Long filmId, Long userId) {
+    public void validateFilmAndUserExist(Long filmId, Long userId) {
         log.trace("Валидация существования фильма с id {} и пользователя с id {}", filmId, userId);
         if (filmId == null || userId == null) {
             log.error("Оба идентификатора (filmId и userId) должны быть указаны");
