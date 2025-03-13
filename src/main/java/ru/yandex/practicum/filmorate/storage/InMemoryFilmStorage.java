@@ -42,7 +42,8 @@ public class InMemoryFilmStorage implements FilmStorage {
         film.setId(getNextId());
         films.put(film.getId(), film);
         log.info("Фильм: '{}', успешно добавлен в коллекцию", film.getName());
-        return film;    }
+        return film;
+    }
 
     @Override
     public Film update(Film filmWithNewData) {
@@ -79,5 +80,6 @@ public class InMemoryFilmStorage implements FilmStorage {
                 .mapToLong(id -> id)
                 .max()
                 .orElse(0);
-        return ++currentMaxId;    }
+        return ++currentMaxId;
+    }
 }
