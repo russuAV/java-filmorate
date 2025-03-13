@@ -72,8 +72,8 @@ public class InMemoryUserStorage implements UserStorage {
             log.error("Пользователь не найден");
             throw new NotFoundException("Пользователь не найден");
         }
-        if (!userWithNewData.getEmail().equals(userWithOldData.getEmail()) &&
-                usersByEmail.containsKey(userWithNewData.getEmail())) {
+        if (!userWithNewData.getEmail().equals(userWithOldData.getEmail())
+                && usersByEmail.containsKey(userWithNewData.getEmail())) {
             log.error("Ошибка обновления: email {} уже используется", userWithNewData.getEmail());
             throw new ValidationException("Этот e-mail уже используется");
         }
@@ -84,8 +84,8 @@ public class InMemoryUserStorage implements UserStorage {
         usersByEmail.put(userWithOldData.getEmail(), userWithOldData);
 
         // обновляем логин
-        if (!userWithNewData.getLogin().equals(userWithOldData.getLogin()) &&
-                usersByLogin.containsKey(userWithNewData.getLogin())) {
+        if (!userWithNewData.getLogin().equals(userWithOldData.getLogin())
+                && usersByLogin.containsKey(userWithNewData.getLogin())) {
             log.error("Ошибка обновления: login {} уже используется", userWithNewData.getLogin());
             throw new ValidationException("Этот логин уже используется");
         }

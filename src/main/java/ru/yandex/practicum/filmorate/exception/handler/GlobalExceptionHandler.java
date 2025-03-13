@@ -28,7 +28,8 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler({ValidationException.class, MethodArgumentNotValidException.class})
-    public ResponseEntity<ErrorResponse> handleValidation(ValidationException e, HttpServletRequest request) {
+    public ResponseEntity<ErrorResponse> handleValidation(
+            ValidationException e, HttpServletRequest request) {
         ErrorResponse errorResponse = new ErrorResponse(
                 LocalDateTime.now(),
                 HttpStatus.BAD_REQUEST.value(),

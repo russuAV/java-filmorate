@@ -62,7 +62,7 @@ class UserServiceTest {
         userService.addFriend(user1.getId(), user3.getId());
         userService.addFriend(user2.getId(), user3.getId());
 
-        List<User> commonFriends= userService.getCommonFriends(user1.getId(), user2.getId());
+        List<User> commonFriends = userService.getCommonFriends(user1.getId(), user2.getId());
         assertTrue(commonFriends.contains(user3));
     }
 
