@@ -8,6 +8,7 @@ import ru.yandex.practicum.filmorate.model.Film;
 
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 
 @Slf4j
@@ -57,20 +58,26 @@ public class InMemoryFilmStorage implements FilmStorage {
             log.error("Ошибка обновления: фильм не найден");
             throw new NotFoundException("Фильм не найден");
         }
-        // меняем релиз-дату
-        if (filmWithNewData.isValidReleaseDate()) {
-            filmWithOldData.setReleaseDate(filmWithNewData.getReleaseDate());
+
+        Film updateFilm = new Film(
+                filmWithNewData.getId(),
+                filmWithNewData.getReleaseDate(),
+                filmWithNewData.getName(),
+                filmWithNewData.getDescription(),
+                filmWithNewData.getDuration()
+        );
+        if (!updateFilm.isValidReleaseDate()) {
+            throw new ValidationException("Дата релиза должна быть не раньше 28 декабря 1895 года");
         }
-        // меняем название
-        filmWithOldData.setName(filmWithNewData.getName());
-
-        //меняем описание
-        filmWithOldData.setDescription(filmWithNewData.getDescription());
-
-        //меняем продолжительность фильма
-        filmWithOldData.setDuration(filmWithNewData.getDuration());
+        if (filmWithNewData.getLikes() != null && !filmWithNewData.getLikes().isEmpty()) {
+            updateFilm.setLikes(new HashSet<>(filmWithNewData.getLikes()));
+        } else {
+            updateFilm.setLikes(filmWithOldData.getLikes());
+        }
+        films.remove(filmWithOldData.getId(), filmWithOldData);
+        films.put(updateFilm.getId(), updateFilm);
         log.info("Данные о фильме '{}' успешно обновлены", filmWithOldData.getName());
-        return filmWithOldData;
+        return updateFilm;
     }
 
     @Override

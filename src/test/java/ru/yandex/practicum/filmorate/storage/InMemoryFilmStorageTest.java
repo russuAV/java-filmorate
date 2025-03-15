@@ -66,14 +66,15 @@ private FilmStorage filmStorage;
                 "test1", "description1", 120);
 
         filmStorage.create(film1);
-        film1.setName("newTest1");
-        film1.setDescription("newDescription1");
-        film1.setDuration(130);
 
-        filmStorage.update(film1);
+        Film updateFilm1 = new Film(1L, LocalDate.of(1997, 1, 26),
+                "updateFilm1", "updateDescription1", 130);
 
-        assertEquals("newTest1", filmStorage.getFilmById(1L).getName());
-        assertEquals("newDescription1", filmStorage.getFilmById(1L).getDescription());
+
+        filmStorage.update(updateFilm1);
+
+        assertEquals("updateFilm1", filmStorage.getFilmById(1L).getName());
+        assertEquals("updateDescription1", filmStorage.getFilmById(1L).getDescription());
         assertEquals(130, filmStorage.getFilmById(1L).getDuration());
     }
 }

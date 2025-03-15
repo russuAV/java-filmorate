@@ -72,34 +72,50 @@ public class InMemoryUserStorage implements UserStorage {
             log.error("Пользователь не найден");
             throw new NotFoundException("Пользователь не найден");
         }
-        if (!userWithNewData.getEmail().equals(userWithOldData.getEmail())
-                && usersByEmail.containsKey(userWithNewData.getEmail())) {
-            log.error("Ошибка обновления: email {} уже используется", userWithNewData.getEmail());
-            throw new ValidationException("Этот e-mail уже используется");
+        // проверяем доступность email
+        if (!userWithNewData.getEmail().equals(userWithOldData.getEmail())) {
+            if (usersByEmail.containsKey(userWithNewData.getEmail())) {
+                User existingUserByEmail = usersByEmail.get(userWithNewData.getEmail());
+                if (!existingUserByEmail.getId().equals(userWithNewData.getId())) {
+                    log.error("Ошибка обновления: email {} уже используется", userWithNewData.getEmail());
+                    throw new ValidationException("Этот e-mail уже используется");
+                }
+            }
         }
 
-        // обновляем e-mail
+        // проверяем доступность логина
+        if (!userWithNewData.getLogin().equals(userWithOldData.getLogin())) {
+            if (usersByLogin.containsKey(userWithNewData.getLogin())) {
+                User existingUserByLogin = usersByLogin.get(userWithNewData.getLogin());
+                if (!existingUserByLogin.getId().equals(userWithNewData.getId())) {
+                    log.error("Ошибка обновления: login {} уже используется", userWithNewData.getLogin());
+                    throw new ValidationException("Этот логин уже используется");
+                }
+            }
+        }
+
+        User updateUser = new User(
+                userWithNewData.getId(),
+                userWithNewData.getEmail(),
+                userWithNewData.getLogin(),
+                userWithNewData.getName(),
+                userWithNewData.getBirthday()
+        );
+        if (userWithNewData.getFriends() != null && !userWithNewData.getFriends().isEmpty()) {
+            updateUser.setFriends(new HashSet<>(userWithNewData.getFriends()));
+        } else {
+            updateUser.setFriends(userWithOldData.getFriends());
+        }
+        // удаляем старого пользователя и возвращаем нового
+        users.remove(userWithOldData.getId());
         usersByEmail.remove(userWithOldData.getEmail());
-        userWithOldData.setEmail(userWithNewData.getEmail());
-        usersByEmail.put(userWithOldData.getEmail(), userWithOldData);
-
-        // обновляем логин
-        if (!userWithNewData.getLogin().equals(userWithOldData.getLogin())
-                && usersByLogin.containsKey(userWithNewData.getLogin())) {
-            log.error("Ошибка обновления: login {} уже используется", userWithNewData.getLogin());
-            throw new ValidationException("Этот логин уже используется");
-        }
         usersByLogin.remove(userWithOldData.getLogin());
-        userWithOldData.setLogin(userWithNewData.getLogin());
-        usersByLogin.put(userWithOldData.getLogin(), userWithOldData);
+        users.put(userWithNewData.getId(), userWithNewData);
+        usersByLogin.put(userWithNewData.getLogin(), userWithNewData);
+        usersByEmail.put(userWithNewData.getEmail(), userWithNewData);
 
-        // обновляем имя
-        userWithOldData.setName(userWithNewData.getName());
-
-        // обновляем дату рождения
-        userWithOldData.setBirthday(userWithNewData.getBirthday());
         log.info("Пользователь с id {} успешно обновлён", userWithOldData.getId());
-        return userWithOldData;
+        return updateUser;
     }
 
     @Override

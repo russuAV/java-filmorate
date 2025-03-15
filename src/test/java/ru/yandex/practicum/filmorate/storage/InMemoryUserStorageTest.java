@@ -3,6 +3,7 @@ package ru.yandex.practicum.filmorate.storage;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
+import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
 
 import java.time.LocalDate;
@@ -65,13 +66,78 @@ class InMemoryUserStorageTest {
     void update() {
         User user1 = new User(1L, "user1@email.com", "user1", "user1",
                 LocalDate.of(1997, 01, 26));
+        User updateUser1 = new User(1L, "user1new@email.com", "newLogin1", "newUser1",
+                LocalDate.of(1997, 01, 26));
 
         userStorage.create(user1);
-        user1.setName("newUser1");
-        user1.setLogin("newLogin1");
-        userStorage.update(user1);
+        userStorage.update(updateUser1);
 
         assertEquals("newUser1", userStorage.getUserById(user1.getId()).getName());
         assertEquals("newLogin1", userStorage.getUserById(user1.getId()).getLogin());
+    }
+
+    @Test
+    void createUserWithExistLogin() {
+        User user1 = new User(1L, "user1@email.com", "user1", "user1",
+                LocalDate.of(1997, 01, 26));
+
+        User user2 = new User(2L, "user2@email.com", "user1", "user2",
+                LocalDate.of(1997, 01, 26));
+
+        userStorage.create(user1);
+        Exception exception = assertThrows(ValidationException.class, () -> {
+            userStorage.create(user2);
+                });
+        assertEquals("Данный логин занят", exception.getMessage());
+    }
+
+    @Test
+    void createUserWithExistEmail() {
+        User user1 = new User(1L, "user1@email.com", "user1", "user1",
+                LocalDate.of(1997, 01, 26));
+        User user2 = new User(2L, "user1@email.com", "user2", "user2",
+                LocalDate.of(1997, 01, 26));
+
+        userStorage.create(user1);
+        Exception exception = assertThrows(ValidationException.class, () -> {
+            userStorage.create(user2);
+        });
+        assertEquals("Данный email уже используется", exception.getMessage());
+    }
+
+     @Test
+     void updateUserWithExistLogin() {
+         User user1 = new User(1L, "user1@email.com", "user1", "user1",
+                 LocalDate.of(1997, 01, 26));
+         User user2 = new User(2L, "user2@email.com", "user2", "user2",
+                 LocalDate.of(1997, 01, 26));
+         User updateUser1 = new User(1L, "user1new@email.com", "user2", "user1",
+                 LocalDate.of(1997, 01, 26));
+
+        userStorage.create(user1);
+        userStorage.create(user2);
+
+        Exception exception = assertThrows(ValidationException.class, () -> {
+            userStorage.update(updateUser1);
+        });
+        assertEquals("Этот логин уже используется", exception.getMessage());
+     }
+
+    @Test
+    void updateUserWithExistEmail() {
+        User user1 = new User(1L, "user1@email.com", "user1", "user1",
+                LocalDate.of(1997, 01, 26));
+        User user2 = new User(2L, "user2@email.com", "user2", "user2",
+                LocalDate.of(1997, 01, 26));
+        User updateUser1 = new User(1L, "user2@email.com", "user1", "user1",
+                LocalDate.of(1997, 01, 26));
+
+        userStorage.create(user1);
+        userStorage.create(user2);
+
+        Exception exception = assertThrows(ValidationException.class, () -> {
+            userStorage.update(updateUser1);
+        });
+        assertEquals("Этот e-mail уже используется", exception.getMessage());
     }
 }
