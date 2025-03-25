@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.*;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
+import ru.yandex.practicum.filmorate.model.userdata.Friendship;
 
 import java.time.LocalDate;
 import java.util.HashSet;
@@ -14,7 +15,10 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class User {
     private Long id;
+    // сет для локального хранения
     private Set<Long> friends = new HashSet<>();
+    // сет для репозитория
+    private Set<Friendship> friendships = new HashSet<>();
 
     @NotBlank(message = "Электронная почта не может быть пустой")
     @Email(message = "Электронная почта должна быть корректной и содержать символ '@'")

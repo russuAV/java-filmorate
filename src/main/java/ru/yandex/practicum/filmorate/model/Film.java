@@ -3,6 +3,8 @@ package ru.yandex.practicum.filmorate.model;
 import jakarta.validation.constraints.*;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
+import ru.yandex.practicum.filmorate.model.filmdata.Genre;
+import ru.yandex.practicum.filmorate.model.filmdata.MpaRating;
 
 import java.time.LocalDate;
 import java.util.HashSet;
@@ -13,6 +15,8 @@ import java.util.Set;
 public class Film {
     private Long id;
     private Set<Long> likes = new HashSet<>();
+    private Set<Genre> genres = new HashSet<>();
+    private MpaRating mpaRating;
 
     public Film(Long id, LocalDate releaseDate, String name, String description, int duration) {
         this.id = id;
