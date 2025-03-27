@@ -4,6 +4,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import ru.yandex.practicum.filmorate.model.User;
+import ru.yandex.practicum.filmorate.model.userdata.FriendshipStatus;
 import ru.yandex.practicum.filmorate.storage.InMemoryUserStorage;
 import ru.yandex.practicum.filmorate.storage.UserStorage;
 
@@ -25,7 +26,7 @@ class UserServiceTest {
     }
 
     @Test
-    void shouldAddFriend() {
+    void shouldSendAndConfirmFriendRequest() {
         User user1 = new User(1L, "user1@email.com", "user1", "user1",
                 LocalDate.of(1997, 01, 26));
         User user2 = new User(2L, "user2@email.com", "user2", "user2",
@@ -33,18 +34,34 @@ class UserServiceTest {
         userStorage.create(user1);
         userStorage.create(user2);
 
-        userService.addFriend(1L, 2L);
-        assertTrue(user1.getFriends().contains(2L));
-        assertTrue(user2.getFriends().contains(1L));
+        userService.sendFriendRequest(1L, 2L);
+        assertTrue(user1.getFriendships().stream()
+                .anyMatch(f -> f.getFriendId() == user2.getId()
+                && f.getStatus() == FriendshipStatus.PENDING));
+
+        userService.confirmFriendRequest(2L, 1L);
+        assertTrue(user2.getFriendships().stream()
+                .anyMatch(f -> f.getFriendId() == user1.getId()
+                && f.getStatus() == FriendshipStatus.CONFIRMED));
     }
 
     @Test
-    void shouldGetFriends() {
+    void shouldReturnListOfFriends() {
         User user1 = new User(1L, "user1@email.com", "user1", "user1",
-                LocalDate.of(1997, 01, 26));
+                LocalDate.of(1997, 1, 26));
+        User user2 = new User(2L, "user2@email.com", "user2", "user2",
+                LocalDate.of(1998, 2, 15));
         userStorage.create(user1);
-        User theSameUser = userStorage.getUserById(1L);
-        assertEquals(user1, theSameUser);
+        userStorage.create(user2);
+
+        userService.sendFriendRequest(1L, 2L);
+        userService.confirmFriendRequest(2L, 1L);
+
+        List<User> friends = userService.getFriends(1L);
+
+        // Проверка
+        assertEquals(1, friends.size());
+        assertTrue(friends.contains(user2));
     }
 
     @Test
@@ -59,10 +76,12 @@ class UserServiceTest {
         userStorage.create(user2);
         userStorage.create(user3);
 
-        userService.addFriend(user1.getId(), user3.getId());
-        userService.addFriend(user2.getId(), user3.getId());
+        userService.sendFriendRequest(1L, 3L);
+        userService.sendFriendRequest(2L, 3L);
+        userService.confirmFriendRequest(3L, 1L);
+        userService.confirmFriendRequest(3L, 2L);
 
-        List<User> commonFriends = userService.getCommonFriends(user1.getId(), user2.getId());
+        List<User> commonFriends = userService.getCommonFriends(1L, 2L);
         assertTrue(commonFriends.contains(user3));
     }
 
@@ -76,11 +95,20 @@ class UserServiceTest {
         userStorage.create(user1);
         userStorage.create(user2);
 
-        userService.addFriend(user1.getId(), user2.getId());
+        userService.sendFriendRequest(1L, 2L);
+        userService.confirmFriendRequest(2L, 1L);
+
+        assertTrue(user1.getFriendships().stream()
+                .anyMatch(f -> f.getFriendId() == user2.getId()
+                        && f.getStatus() == FriendshipStatus.CONFIRMED));
         userService.deleteFriend(user1.getId(), user2.getId());
 
-        assertFalse(user1.getFriends().contains(user2.getId()));
-        assertFalse(user2.getFriends().contains(user1.getId()));
+        assertFalse(user1.getFriendships().stream()
+                .anyMatch(f -> f.getFriendId() == user2.getId()
+                        && f.getStatus() == FriendshipStatus.CONFIRMED));
+        assertFalse(user1.getFriendships().stream()
+                .anyMatch(f -> f.getFriendId() == user2.getId()
+                        && f.getStatus() == FriendshipStatus.PENDING));
 
     }
 }
