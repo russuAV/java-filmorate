@@ -9,15 +9,13 @@ import ru.yandex.practicum.filmorate.model.userdata.Friendship;
 
 import java.time.LocalDate;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 
 @Data
 @RequiredArgsConstructor
 public class User {
     private Long id;
-    // сет для локального хранения
-    private Set<Long> friends = new HashSet<>();
-    // сет для репозитория
     private Set<Friendship> friendships = new HashSet<>();
 
     @NotBlank(message = "Электронная почта не может быть пустой")
@@ -49,5 +47,17 @@ public class User {
 
     public void setName(String name) {
         this.name = (name == null || name.isBlank()) ? this.login : name;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (o == null || getClass() != o.getClass()) return false;
+        User user = (User) o;
+        return Objects.equals(id, user.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(id);
     }
 }

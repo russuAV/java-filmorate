@@ -101,11 +101,9 @@ public class InMemoryUserStorage implements UserStorage {
                 userWithNewData.getName(),
                 userWithNewData.getBirthday()
         );
-        if (userWithNewData.getFriends() != null && !userWithNewData.getFriends().isEmpty()) {
-            updateUser.setFriends(new HashSet<>(userWithNewData.getFriends()));
-        } else {
-            updateUser.setFriends(userWithOldData.getFriends());
-        }
+
+        updateUser.setFriendships(new HashSet<>(userWithOldData.getFriendships()));
+
         // удаляем старого пользователя и возвращаем нового
         users.remove(userWithOldData.getId());
         usersByEmail.remove(userWithOldData.getEmail());

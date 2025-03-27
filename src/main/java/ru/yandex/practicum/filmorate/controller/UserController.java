@@ -34,15 +34,21 @@ private final UserService userService;
     }
 
     @PutMapping("/{id}/friends/{friendId}")
-    public void addFriend(@PathVariable Long id,
-                          @PathVariable Long friendId) {
-        userService.addFriend(id, friendId);
+    public void sendFriendRequest(@PathVariable("id") Long senderId,
+                                  @PathVariable("friendId") Long receiverId) {
+        userService.sendFriendRequest(senderId, receiverId);
+    }
+
+    @PutMapping("/{id}/friends/{friendId}/confirm")
+    public void confirmFriendRequest(@PathVariable("id") Long receiverId,
+                                     @PathVariable("friendId") Long senderId) {
+        userService.confirmFriendRequest(receiverId, senderId);
     }
 
     @DeleteMapping("/{id}/friends/{friendId}")
-    public void deleteFriend(@PathVariable Long id,
-                              @PathVariable Long friendId) {
-        userService.deleteFriend(id, friendId);
+    public void deleteFriend(@PathVariable("id") Long requesterId,
+                              @PathVariable("friendId") Long targetId) {
+        userService.deleteFriend(requesterId, targetId);
     }
 
     @GetMapping("/{id}/friends")
@@ -51,9 +57,9 @@ private final UserService userService;
     }
 
     @GetMapping("/{id}/friends/common/{friendId}")
-    public List<User> getCommonFriends(@PathVariable Long id,
-                                       @PathVariable Long friendId) {
-        return userService.getCommonFriends(id, friendId);
+    public List<User> getCommonFriends(@PathVariable("id") Long user1Id,
+                                       @PathVariable("friendId") Long user2Id) {
+        return userService.getCommonFriends(user1Id, user2Id);
     }
 
     @PostMapping

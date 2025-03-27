@@ -6,11 +6,14 @@ import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exception.ConditionsNotMetException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
+import ru.yandex.practicum.filmorate.model.userdata.Friendship;
+import ru.yandex.practicum.filmorate.model.userdata.FriendshipStatus;
 import ru.yandex.practicum.filmorate.storage.UserStorage;
 
-import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -22,83 +25,125 @@ public class UserService {
         this.userStorage = userStorage;
     }
 
-    public void addFriend(Long id, Long friendId) {
-        log.debug("Попытка пользователя {} добавить в друзья пользователя {}", id, friendId);
-        User[] users = validateAndGetUsers(id, friendId);
-        User user1 = users[0];
-        User user2 = users[1];
+    public void sendFriendRequest(Long senderId, Long receivedId) {
+        log.debug("Попытка пользователя {} отправить запрос в друзья пользователю {}", senderId, receivedId);
+        User[] users = validateAndGetUsers(senderId, receivedId);
+        User sender = users[0];
+        User receiver = users[1];
 
-        if (user1.getFriends().contains(friendId)) {
-            log.error("Пользователь с id {} уже имеется в друзьях у пользователя {}", friendId, id);
-            throw new ValidationException("Данный друг уже имеется в списке друзей!");
+        Friendship friendshipRequest = new Friendship(senderId, receivedId, FriendshipStatus.PENDING);
+        if (sender.getFriendships().contains(friendshipRequest)) {
+            throw new ValidationException("Заявка уже была отправлена ранее.");
         }
-        user1.getFriends().add(friendId);
-        user2.getFriends().add(id);
-
-        log.info("Пользователь {} успешно добавил в друзья пользователя {}", id, friendId);
+        sender.getFriendships().add(friendshipRequest);
+        log.info("Заявка в друзья от пользователя {} к {} отправлена.", senderId, receivedId);
     }
+
+    public void confirmFriendRequest(Long receiverId, Long senderId) {
+        log.debug("Попытка пользователя {} добавить в друзья пользователя {}", receiverId, senderId);
+        User[] users = validateAndGetUsers(receiverId, senderId);
+        User receiver = users[0];
+        User sender = users[1];
+
+        Optional<Friendship> friendshipOpt = sender.getFriendships().stream()
+                .filter(f -> f.getUserId() == senderId && f.getFriendId() == receiverId
+                        && f.getStatus() == FriendshipStatus.PENDING)
+                .findFirst();
+
+        if (friendshipOpt.isEmpty()) {
+            throw new ValidationException("Заявка на добавление в друзья не найдена.");
+        }
+
+        Friendship friendship = friendshipOpt.get();
+
+        if (friendship.getStatus() == FriendshipStatus.CONFIRMED) {
+            throw new ValidationException("Заявка уже подтверждена ранее.");
+        }
+
+        friendship.setStatus(FriendshipStatus.CONFIRMED);
+
+        // Добавляем в список получателя
+        receiver.getFriendships().add(new Friendship(receiverId, senderId, FriendshipStatus.CONFIRMED));
+        log.info("Заявка в друзья от пользователя {} к {} принята.", receiverId, senderId);
+    }
+
 
     public List<User> getFriends(Long id) {
         log.debug("Попытка получить список друзей пользователя с id {}", id);
         User user = userStorage.getUserById(id);
-        Set<Long> friendIds = user.getFriends();
 
+        List<User> friendsList = user.getFriendships()
+                .stream()
+                .filter(friendship -> friendship.getStatus() == FriendshipStatus.CONFIRMED)
+                .map(Friendship::getFriendId)
+                .map(userStorage::getUserById)
+                .toList();
         log.info("Получен список друзей пользователя с id {}", id);
-        return friendIds.stream()
-                .map(userStorage::getUserById)
-                .toList();
+
+        return friendsList;
     }
 
-    public List<User> getCommonFriends(Long id, Long friendsId) {
+    public List<User> getCommonFriends(Long user1Id, Long user2Id) {
         log.debug("Запрос на получение списка общих друзей");
-        User[] users = validateAndGetUsers(id, friendsId);
+        User[] users = validateAndGetUsers(user1Id, user2Id);
         User user1 = users[0];
         User user2 = users[1];
 
-        Set<Long> friendIdsUser1 = user1.getFriends();
-        Set<Long> friendsIdsUser2 = user2.getFriends();
+        // Получаем confirmed-друзей первого пользователя
+        Set<Long> user1Friends = user1.getFriendships().stream()
+                .filter(f -> f.getStatus() == FriendshipStatus.CONFIRMED)
+                .map(Friendship::getFriendId)
+                .collect(Collectors.toSet());
 
-        Set<Long> commonFriends = new HashSet<>(friendIdsUser1);
-        commonFriends.retainAll(friendsIdsUser2);
+        // Получаем confirmed-друзей второго пользователя
+        Set<Long> user2Friends = user2.getFriendships().stream()
+                .filter(f -> f.getStatus() == FriendshipStatus.CONFIRMED)
+                .map(Friendship::getFriendId)
+                .collect(Collectors.toSet());
+        // Пересечение
+        user1Friends.retainAll(user2Friends);
 
-        log.info("Выведен список общих друзей");
-        return commonFriends.stream()
+        log.info("Выведен список общих друзей. Найдено общих друзей {}", user1Friends.size());
+
+        return user1Friends.stream()
                 .map(userStorage::getUserById)
                 .toList();
     }
 
-    public void deleteFriend(Long id, Long friendsId) {
-        log.debug("Попытка пользователя {} удалить из друзей пользователя {}", id, friendsId);
-        User[] users = validateAndGetUsers(id, friendsId);
-        User user1 = users[0];
-        User user2 = users[1];
+    public void deleteFriend(Long requesterId, Long targetId) {
+        log.debug("Попытка пользователя {} удалить из друзей пользователя {}", requesterId, targetId);
+        User[] users = validateAndGetUsers(requesterId, targetId);
+        User user = users[0];
+        User friend = users[1];
 
-        if (!user1.getFriends().contains(friendsId)) {
-            log.warn("Пользователь с id {} отсутствует в списке друзей у пользователя {}", friendsId, id);
+        boolean removed1 = user.getFriendships().removeIf(f -> f.getFriendId() == targetId
+                && f.getStatus() == FriendshipStatus.CONFIRMED);
+
+        boolean removed2 = friend.getFriendships().removeIf(f -> f.getFriendId() == requesterId
+                && f.getStatus() == FriendshipStatus.CONFIRMED);
+        if (!removed1 && !removed2) {
+            log.warn("Пользователь с id {} отсутствует в списке друзей у пользователя {}", targetId, requesterId);
             return;
         }
 
-        user1.getFriends().remove(friendsId);
-        user2.getFriends().remove(id);
-
-        log.info("Пользователь {} успешно удалил из друзей пользователя {}", id, friendsId);
+        log.info("Пользователь {} успешно удалил из друзей пользователя {}", requesterId, targetId);
     }
 
-    private User[] validateAndGetUsers(Long id, Long friendsId) {
-        log.trace("Валидация существования пользователей с id {} и {}", id, friendsId);
-        if (id == null || friendsId == null) {
+    private User[] validateAndGetUsers(Long user1Id, Long user2Id) {
+        log.trace("Валидация существования пользователей с id {} и {}", user1Id, user2Id);
+        if (user1Id == null || user2Id == null) {
             log.error("Отсутствует информация об ID");
             throw new ConditionsNotMetException("Id должен быть указан");
         }
-        if (id.equals(friendsId)) {
+        if (user1Id.equals(user2Id)) {
             log.error("ID совпадают, неверно указаны идентификаторы пользователей");
-            throw new ValidationException("Личный id, и id друга совпадают. Неверный ввод данных");
+            throw new ValidationException("ID совпадают. Неверный ввод данных");
         }
 
-        User user1 = userStorage.getUserById(id);
-        User user2 = userStorage.getUserById(friendsId);
+        User user1 = userStorage.getUserById(user1Id);
+        User user2 = userStorage.getUserById(user2Id);
 
-        log.trace("Валидация пользователей с ID {} и {} прошла успешно", id, friendsId);
+        log.trace("Валидация пользователей с ID {} и {} прошла успешно", user1Id, user2Id);
         return new User[]{user1, user2};
     }
 }

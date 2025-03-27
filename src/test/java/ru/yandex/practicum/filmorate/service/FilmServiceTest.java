@@ -4,6 +4,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.User;
+import ru.yandex.practicum.filmorate.model.filmdata.Genre;
+import ru.yandex.practicum.filmorate.model.filmdata.MpaRating;
 import ru.yandex.practicum.filmorate.storage.FilmStorage;
 import ru.yandex.practicum.filmorate.storage.InMemoryFilmStorage;
 import ru.yandex.practicum.filmorate.storage.InMemoryUserStorage;
@@ -11,6 +13,7 @@ import ru.yandex.practicum.filmorate.storage.UserStorage;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -29,7 +32,8 @@ class FilmServiceTest {
     @Test
     void addLike() {
         Film film = new Film(1L, LocalDate.of(1997, 1, 26),
-                "test", "description", 120);
+                "test", "description", 120,
+                Set.of(new Genre(1, "Comedy")), MpaRating.G);
 
         User user = userStorage.create(new User(1L, "user1@email.com", "user1", "user1",
                 LocalDate.of(1997,1,26)));
@@ -42,7 +46,8 @@ class FilmServiceTest {
     @Test
     void deleteLike() {
         Film film = new Film(1L, LocalDate.of(1997, 1, 26),
-                "test", "description", 120);
+                "test", "description", 120,
+                Set.of(new Genre(1, "Comedy")), MpaRating.G);
 
         User user = userStorage.create(new User(1L, "user1@email.com", "user1", "user1",
                 LocalDate.of(1997,1,26)));
@@ -57,9 +62,11 @@ class FilmServiceTest {
     @Test
     void getTopFilms() {
         Film film1 = new Film(1L, LocalDate.of(1997, 1, 26),
-                "test1", "description1", 120);
+                "test1", "description1", 120,
+                Set.of(new Genre(1, "Comedy")), MpaRating.G);
         Film film2 = new Film(2L, LocalDate.of(1997, 1, 26),
-                "test2", "description2", 120);
+                "test2", "description2", 120,
+                Set.of(new Genre(1, "Comedy")), MpaRating.G);
 
         User user = userStorage.create(new User(1L, "user1@email.com", "user1", "user1",
                 LocalDate.of(1997,1,26)));

@@ -18,12 +18,15 @@ public class Film {
     private Set<Genre> genres = new HashSet<>();
     private MpaRating mpaRating;
 
-    public Film(Long id, LocalDate releaseDate, String name, String description, int duration) {
+    public Film(Long id, LocalDate releaseDate, String name, String description, int duration,
+                Set<Genre> genres, MpaRating mpaRating) {
         this.id = id;
         this.releaseDate = releaseDate;
         this.name = name;
         this.description = description;
         this.duration = duration;
+        this.genres = genres;
+        this.mpaRating = mpaRating;
     }
 
     @NotNull
