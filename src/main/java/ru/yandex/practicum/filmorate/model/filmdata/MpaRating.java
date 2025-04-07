@@ -1,19 +1,16 @@
 package ru.yandex.practicum.filmorate.model.filmdata;
 
-public enum MpaRating {
-    G("G — без ограничений"),
-    PG("PG — с родителями"),
-    PG_13("PG-13 — не рекомендован до 13"),
-    R("R — до 17 с родителями"),
-    NC_17("NC-17 — строго 18+");
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-    private final String description;
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class MpaRating {
+    private Long id;
 
-    MpaRating(String description) {
-        this.description = description;
-    }
-
-    public String getDescription() {
-        return description;
-    }
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    private String name;
 }

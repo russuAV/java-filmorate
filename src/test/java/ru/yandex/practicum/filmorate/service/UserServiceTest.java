@@ -2,113 +2,95 @@ package ru.yandex.practicum.filmorate.service;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.jdbc.core.JdbcTemplate;
+import ru.yandex.practicum.filmorate.dto.NewUserRequest;
+import ru.yandex.practicum.filmorate.dto.UpdateUserRequest;
+import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.model.User;
-import ru.yandex.practicum.filmorate.model.userdata.FriendshipStatus;
-import ru.yandex.practicum.filmorate.storage.InMemoryUserStorage;
-import ru.yandex.practicum.filmorate.storage.UserStorage;
 
 import java.time.LocalDate;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @SpringBootTest
+@AutoConfigureTestDatabase
 class UserServiceTest {
+
+    @Autowired
     private UserService userService;
-    private UserStorage userStorage;
+
+    @Autowired
+    private JdbcTemplate jdbc;
 
     @BeforeEach
-    void setup() {
-        userStorage = new InMemoryUserStorage() {
-        };
-        userService = new UserService(userStorage);
+    void setUp() {
+        jdbc.update("DELETE FROM friendships");
+        jdbc.update("DELETE FROM users");
     }
 
     @Test
-    void shouldSendAndConfirmFriendRequest() {
-        User user1 = new User(1L, "user1@email.com", "user1", "user1",
-                LocalDate.of(1997, 01, 26));
-        User user2 = new User(2L, "user2@email.com", "user2", "user2",
-                LocalDate.of(1997, 01, 27));
-        userStorage.create(user1);
-        userStorage.create(user2);
+    void shouldCreateUserAndReturn() {
+        NewUserRequest request = new NewUserRequest(
+                "test@mail.com",
+                "login",
+                "Name",
+                LocalDate.of(2000, 1, 1)
+        );
 
-        userService.sendFriendRequest(1L, 2L);
-        assertTrue(user1.getFriendships().stream()
-                .anyMatch(f -> f.getFriendId() == user2.getId()
-                && f.getStatus() == FriendshipStatus.PENDING));
+        User user = userService.create(request);
 
-        userService.confirmFriendRequest(2L, 1L);
-        assertTrue(user2.getFriendships().stream()
-                .anyMatch(f -> f.getFriendId() == user1.getId()
-                && f.getStatus() == FriendshipStatus.CONFIRMED));
+        assertThat(user.getId()).isNotNull();
+        assertThat(user.getLogin()).isEqualTo("login");
+        assertThat(user.getEmail()).isEqualTo("test@mail.com");
     }
 
     @Test
-    void shouldReturnListOfFriends() {
-        User user1 = new User(1L, "user1@email.com", "user1", "user1",
-                LocalDate.of(1997, 1, 26));
-        User user2 = new User(2L, "user2@email.com", "user2", "user2",
-                LocalDate.of(1998, 2, 15));
-        userStorage.create(user1);
-        userStorage.create(user2);
+    void shouldReturnAllUsers() {
+        userService.create(new NewUserRequest("a@mail.com", "a", "A",
+                LocalDate.of(1990, 1, 1)));
+        userService.create(new NewUserRequest("b@mail.com", "b", "B",
+                LocalDate.of(1992, 2, 2)));
 
-        userService.sendFriendRequest(1L, 2L);
-        userService.confirmFriendRequest(2L, 1L);
-
-        List<User> friends = userService.getFriends(1L);
-
-        // Проверка
-        assertEquals(1, friends.size());
-        assertTrue(friends.contains(user2));
+        List<User> all = userService.findAll();
+        assertThat(all).hasSize(2);
     }
 
     @Test
-    void getCommonFriends() {
-        User user1 = new User(1L, "user1@email.com", "user1", "user1",
-                LocalDate.of(1997, 01, 26));
-        User user2 = new User(2L, "user2@email.com", "user2", "user2",
-                LocalDate.of(1997, 01, 27));
-        User user3 = new User(3L, "user3@email.com", "user3", "user3",
-                LocalDate.of(1997, 01, 28));
-        userStorage.create(user1);
-        userStorage.create(user2);
-        userStorage.create(user3);
+    void shouldUpdateUser() {
+        User created = userService.create(new NewUserRequest(
+                "mail@mail.com", "login", "Old",
+                LocalDate.of(1995, 3, 3)));
 
-        userService.sendFriendRequest(1L, 3L);
-        userService.sendFriendRequest(2L, 3L);
-        userService.confirmFriendRequest(3L, 1L);
-        userService.confirmFriendRequest(3L, 2L);
+        UpdateUserRequest updateRequest = new UpdateUserRequest(
+                created.getId(), "mail@mail.com", "login",
+                "Updated Name", LocalDate.of(1995, 3, 3)
+        );
 
-        List<User> commonFriends = userService.getCommonFriends(1L, 2L);
-        assertTrue(commonFriends.contains(user3));
+        User updated = userService.update(updateRequest);
+
+        assertThat(updated.getName()).isEqualTo("Updated Name");
+        assertThat(updated.getId()).isEqualTo(created.getId());
     }
 
     @Test
-    void deleteFriend() {
-        User user1 = new User(1L, "user1@email.com", "user1", "user1",
-                LocalDate.of(1997, 01, 26));
-        User user2 = new User(2L, "user2@email.com", "user2", "user2",
-                LocalDate.of(1997, 01, 27));
+    void shouldThrowOnUpdatingMissingUser() {
+        UpdateUserRequest request = new UpdateUserRequest(999L, "email", "login",
+                "name", null);
+        assertThrows(NotFoundException.class, () -> userService.update(request));
+    }
 
-        userStorage.create(user1);
-        userStorage.create(user2);
+    @Test
+    void shouldFindById() {
+        User created = userService.create(new NewUserRequest("id@mail.com", "log", "X",
+                LocalDate.of(1991, 1, 1)));
+        User found = userService.getUserById(created.getId());
 
-        userService.sendFriendRequest(1L, 2L);
-        userService.confirmFriendRequest(2L, 1L);
-
-        assertTrue(user1.getFriendships().stream()
-                .anyMatch(f -> f.getFriendId() == user2.getId()
-                        && f.getStatus() == FriendshipStatus.CONFIRMED));
-        userService.deleteFriend(user1.getId(), user2.getId());
-
-        assertFalse(user1.getFriendships().stream()
-                .anyMatch(f -> f.getFriendId() == user2.getId()
-                        && f.getStatus() == FriendshipStatus.CONFIRMED));
-        assertFalse(user1.getFriendships().stream()
-                .anyMatch(f -> f.getFriendId() == user2.getId()
-                        && f.getStatus() == FriendshipStatus.PENDING));
-
+        assertThat(found).isNotNull();
+        assertThat(found.getLogin()).isEqualTo("log");
     }
 }

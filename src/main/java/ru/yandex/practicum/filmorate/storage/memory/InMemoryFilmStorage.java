@@ -1,15 +1,14 @@
-package ru.yandex.practicum.filmorate.storage;
+package ru.yandex.practicum.filmorate.storage.memory;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
+import ru.yandex.practicum.filmorate.storage.FilmStorage;
 
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Component
@@ -17,20 +16,21 @@ public class InMemoryFilmStorage implements FilmStorage {
     private final Map<Long, Film> films = new HashMap<>();
 
     @Override
-    public Collection<Film> findAll() {
-        return films.values();
+    public List<Film> findAll() {
+        return films.values().stream()
+                .toList();
     }
 
     @Override
-    public Film getFilmById(Long id) {
-        log.debug("Попытка получить фильм с id {}.", id);
-        Film film = films.get(id);
-        if (film == null) {
-            log.error("Фильм с id {} не найден.", id);
-            throw new NotFoundException("Фильм с id " + id + " не найден.");
+    public Optional<Film> getFilmById(Long filmId) {
+        log.debug("Попытка найти фильм с id {}.", filmId);
+        Optional<Film> result = Optional.ofNullable(films.get(filmId));
+        if (result.isPresent()) {
+            log.info("Фильм с id {} найден.", filmId);
+        } else {
+            log.warn("Фильм с id {} не найден.", filmId);
         }
-        log.info("Получен фильм с id {}.", id);
-        return film;
+        return result;
     }
 
     @Override
@@ -82,7 +82,16 @@ public class InMemoryFilmStorage implements FilmStorage {
         return updateFilm;
     }
 
-    @Override
+    public void delete(Long filmId) {
+        log.debug("Удаление фильма с id = {}", filmId);
+        if (!films.containsKey(filmId)) {
+            log.error("Фильм с id = {} не найден для удаления", filmId);
+            throw new NotFoundException("Фильм с id " + filmId + " не найден.");
+        }
+        films.remove(filmId);
+        log.info("Фильм с id = {} успешно удалён", filmId);
+    }
+
     public long getNextId() {
         long currentMaxId = films.keySet()
                 .stream()
@@ -90,5 +99,31 @@ public class InMemoryFilmStorage implements FilmStorage {
                 .max()
                 .orElse(0);
         return ++currentMaxId;
+    }
+
+    @Override
+    public List<Film> getFilmsByMpaRatingId(Long mpaRatingId) {
+        return films.values().stream()
+                .filter(film -> film.getMpaRating() != null
+                        && film.getMpaRating().getId() == mpaRatingId)
+                .collect(Collectors.toList());
+
+    }
+
+    @Override
+    public List<Film> getFilmsByGenreId(Long genreId) {
+        return films.values().stream()
+                .filter(film -> film.getGenres() != null
+                        && film.getGenres().stream().anyMatch(genre -> genre.getId() == genreId))
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<Film> getFilmsByGenreIds(List<Long> genreIds) {
+        return films.values().stream()
+                .filter(film -> film.getGenres() != null
+                        && film.getGenres().stream()
+                                .anyMatch(genre -> genreIds.contains(genre.getId())))
+                .collect(Collectors.toList());
     }
 }
