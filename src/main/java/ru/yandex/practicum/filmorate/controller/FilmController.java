@@ -11,6 +11,7 @@ import ru.yandex.practicum.filmorate.dto.UserDto;
 import ru.yandex.practicum.filmorate.mapper.FilmMapper;
 import ru.yandex.practicum.filmorate.mapper.UserMapper;
 import ru.yandex.practicum.filmorate.service.FilmService;
+import ru.yandex.practicum.filmorate.service.LikeService;
 
 import java.util.List;
 
@@ -19,6 +20,7 @@ import java.util.List;
 @RequestMapping("/films")
 public class FilmController {
     private final FilmService filmService;
+    private final LikeService likeService;
 
     @GetMapping
     public List<FilmDto> findAll() {
@@ -35,6 +37,18 @@ public class FilmController {
     @PutMapping
     public FilmDto update(@Valid @RequestBody UpdateFilmRequest request) {
         return FilmMapper.mapToFilmDto(filmService.update(request));
+    }
+
+    @PutMapping("/{id}/like/{userId}")
+    public void addLike(@PathVariable("id") Long filmId,
+                        @PathVariable Long userId) {
+        likeService.addLike(filmId, userId);
+    }
+
+    @DeleteMapping("/{id}/like/{userId}")
+    public void deleteLike(@PathVariable("id") Long filmId,
+                           @PathVariable Long userId) {
+        likeService.deleteLike(filmId, userId);
     }
 
     @DeleteMapping
