@@ -1,10 +1,11 @@
-package ru.yandex.practicum.filmorate.storage;
+package ru.yandex.practicum.filmorate.storage.memory;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
+import ru.yandex.practicum.filmorate.storage.UserStorage;
 
 import java.util.*;
 
@@ -19,19 +20,32 @@ public class InMemoryUserStorage implements UserStorage {
     private final Map<String, User> usersByLogin = new HashMap<>();
 
     @Override
-    public Collection<User> findAll() {
-        return users.values();
+    public List<User> findAll() {
+        return users.values().stream()
+                .toList();
     }
 
     @Override
-    public User getUserById(Long id) {
-        log.debug("Попытка полючить пользователя с id {}.", id);
-        User user = users.get(id);
-        if (user == null) {
-            log.error("Пользователь с id {} не найден.", id);
-            throw new NotFoundException("Пользователь с id " + id + " не найден.");
+    public Optional<User> getUserById(Long userId) {
+        log.debug("Попытка полючить пользователя с id {}.", userId);
+        Optional<User> user = Optional.ofNullable(users.get(userId));
+        if (user.isEmpty()) {
+            log.error("Пользователь с id {} не найден.", userId);
+            throw new NotFoundException("Пользователь с id " + userId + " не найден.");
         }
-        log.info("Пользователь с id {} получен.", id);
+        log.info("Пользователь с id {} получен.", userId);
+        return user;
+    }
+
+    @Override
+    public Optional<User> getUserByEmail(String email) {
+        log.debug("Попытка полючить пользователя с email {}.", email);
+        Optional<User> user = Optional.ofNullable(usersByEmail.get(email));
+        if (user.isEmpty()) {
+            log.error("Пользователь с email {} не найден.", email);
+            throw new NotFoundException("Пользователь с email " + email + " не найден.");
+        }
+        log.info("Пользователь с email {} получен.", email);
         return user;
     }
 
@@ -101,11 +115,9 @@ public class InMemoryUserStorage implements UserStorage {
                 userWithNewData.getName(),
                 userWithNewData.getBirthday()
         );
-        if (userWithNewData.getFriends() != null && !userWithNewData.getFriends().isEmpty()) {
-            updateUser.setFriends(new HashSet<>(userWithNewData.getFriends()));
-        } else {
-            updateUser.setFriends(userWithOldData.getFriends());
-        }
+
+        updateUser.setFriendships(new HashSet<>(userWithOldData.getFriendships()));
+
         // удаляем старого пользователя и возвращаем нового
         users.remove(userWithOldData.getId());
         usersByEmail.remove(userWithOldData.getEmail());
@@ -119,6 +131,13 @@ public class InMemoryUserStorage implements UserStorage {
     }
 
     @Override
+    public void delete(Long userId) {
+        log.debug("Попытка удалить пользователя с id {}", userId);
+        getUserById(userId);
+        users.remove(userId);
+        log.info("Пользователь с id {} удален", userId);
+    }
+
     public long getNextId() {
         long currentMaxId = users.keySet()
                 .stream()

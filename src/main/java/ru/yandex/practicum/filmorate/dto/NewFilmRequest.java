@@ -1,39 +1,17 @@
-package ru.yandex.practicum.filmorate.model;
+package ru.yandex.practicum.filmorate.dto;
 
 import jakarta.validation.constraints.*;
+import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.RequiredArgsConstructor;
 import ru.yandex.practicum.filmorate.model.filmdata.Genre;
 import ru.yandex.practicum.filmorate.model.filmdata.MpaRating;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 @Data
-@RequiredArgsConstructor
-public class Film {
-    private Long id;
-    private Set<Long> likes = new HashSet<>();
-    private List<Genre> genres = new ArrayList<>();
-    private MpaRating mpaRating;
-
-    public Film(Long id, LocalDate releaseDate, String name, String description, int duration,
-                List<Genre> genres, MpaRating mpaRating) {
-        this.id = id;
-        this.releaseDate = releaseDate;
-        this.name = name;
-        this.description = description;
-        this.duration = duration;
-        this.genres = genres;
-        this.mpaRating = mpaRating;
-    }
-
-    @NotNull
-    private LocalDate releaseDate;
-
+@AllArgsConstructor
+public class NewFilmRequest {
     @NotBlank(message = "Название не может быть пустым")
     private String name;
 
@@ -42,8 +20,17 @@ public class Film {
     private String description;
 
     @NotNull
+    @Past
+    private LocalDate releaseDate;
+
+    @NotNull
     @Positive(message = "Продолжительность фильма должна быть положительным числом")
-    private int duration;
+    private Integer duration;
+
+    @NotNull(message = "MPA рейтинг обязателен.")
+    private MpaRating mpa;
+
+    private List<Genre> genres;
 
     @AssertTrue(message = "Дата релиза не раньше 28 декабря 1895 года")
     public boolean isValidReleaseDate() {

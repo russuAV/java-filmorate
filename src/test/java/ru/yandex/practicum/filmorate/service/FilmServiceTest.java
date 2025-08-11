@@ -1,78 +1,143 @@
 package ru.yandex.practicum.filmorate.service;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
+import org.springframework.boot.test.context.SpringBootTest;
+import ru.yandex.practicum.filmorate.dto.NewFilmRequest;
+import ru.yandex.practicum.filmorate.dto.UpdateFilmRequest;
+import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.model.Film;
-import ru.yandex.practicum.filmorate.model.User;
-import ru.yandex.practicum.filmorate.storage.FilmStorage;
-import ru.yandex.practicum.filmorate.storage.InMemoryFilmStorage;
-import ru.yandex.practicum.filmorate.storage.InMemoryUserStorage;
-import ru.yandex.practicum.filmorate.storage.UserStorage;
+import ru.yandex.practicum.filmorate.model.filmdata.Genre;
+import ru.yandex.practicum.filmorate.model.filmdata.MpaRating;
 
 import java.time.LocalDate;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
+@SpringBootTest
+@AutoConfigureTestDatabase
 class FilmServiceTest {
-    private FilmStorage filmStorage;
+
+    @Autowired
     private FilmService filmService;
-    private UserStorage userStorage;
 
-    @BeforeEach
-    void setUp() {
-        filmStorage = new InMemoryFilmStorage();
-        userStorage = new InMemoryUserStorage();
-        filmService = new FilmService(filmStorage, userStorage);
+    @Test
+    void shouldDeleteFilmById() {
+        Film film = filmService.create(new NewFilmRequest(
+                "Test Film", "Description",
+                LocalDate.of(2000, 1, 1), 90,
+                new MpaRating(1L, null), List.of(new Genre(1L, ""))));
+
+        filmService.delete(film.getId());
+
+        assertThrows(NotFoundException.class, () -> filmService.getFilmById(film.getId()));
     }
 
     @Test
-    void addLike() {
-        Film film = new Film(1L, LocalDate.of(1997, 1, 26),
-                "test", "description", 120);
+    void shouldCreateAndGetFilmById() {
+        Film film = filmService.create(new NewFilmRequest(
+                "Find Me", "Some Desc",
+                LocalDate.of(1999, 5, 15), 100,
+                new MpaRating(1L, null), List.of(new Genre(1L, "'"))));
 
-        User user = userStorage.create(new User(1L, "user1@email.com", "user1", "user1",
-                LocalDate.of(1997,1,26)));
-        filmStorage.create(film);
-        filmService.addLike(film.getId(), user.getId());
+        Film found = filmService.getFilmById(film.getId());
 
-        assertEquals(1, filmStorage.getFilmById(film.getId()).getLikes().size());
+        assertThat(found).isNotNull();
+        assertThat(found.getName()).isEqualTo("Find Me");
     }
 
     @Test
-    void deleteLike() {
-        Film film = new Film(1L, LocalDate.of(1997, 1, 26),
-                "test", "description", 120);
-
-        User user = userStorage.create(new User(1L, "user1@email.com", "user1", "user1",
-                LocalDate.of(1997,1,26)));
-        filmStorage.create(film);
-        filmService.addLike(film.getId(), user.getId());
-        filmService.deleteLike(film.getId(), user.getId());
-
-        assertEquals(0, filmStorage.getFilmById(film.getId()).getLikes().size());
-
+    void shouldThrowWhenGettingNonexistentFilm() {
+        assertThrows(NotFoundException.class, () -> filmService.getFilmById(9999L));
     }
 
     @Test
-    void getTopFilms() {
-        Film film1 = new Film(1L, LocalDate.of(1997, 1, 26),
-                "test1", "description1", 120);
-        Film film2 = new Film(2L, LocalDate.of(1997, 1, 26),
-                "test2", "description2", 120);
+    void shouldUpdateFilm() {
+        Film created = filmService.create(new NewFilmRequest("Old Title", "Old Desc",
+                LocalDate.of(2010, 1, 1), 100,
+                new MpaRating(1L, null), List.of(new Genre(1L, null))));
 
-        User user = userStorage.create(new User(1L, "user1@email.com", "user1", "user1",
-                LocalDate.of(1997,1,26)));
+        UpdateFilmRequest updateRequest = new UpdateFilmRequest(
+                created.getId(),
+                "New Title",
+                "New Desc",
+                created.getReleaseDate(),
+                created.getDuration(),
+                created.getMpaRating(),
+                created.getGenres()
+        );
+        Film updated = filmService.update(updateRequest);
 
-        filmStorage.create(film1);
-        filmStorage.create(film2);
+        assertThat(updated.getName()).isEqualTo("New Title");
+        assertThat(updateRequest.getDescription()).isEqualTo("New Desc");
+    }
 
-        filmService.addLike(film1.getId(), user.getId());
+    @Test
+    void shouldThrowWhenUpdatingNonexistentFilm() {
+        UpdateFilmRequest badUpdate = new UpdateFilmRequest(9999L, "Name", "Desc",
+                LocalDate.of(2000, 1, 1), 100, new MpaRating(1L, ""),
+                List.of(new Genre(1L, "")));
+        assertThrows(NotFoundException.class, () -> filmService.update(badUpdate));
+    }
 
-        List<Film> topFilms = filmService.getTopFilms(2);
+    @Test
+    void shouldThrowWhenGetNonexistentFilm() {
+        assertThrows(NotFoundException.class, () -> filmService.getFilmById(-999L));
+    }
 
-        assertEquals(2, topFilms.size());
-        assertEquals("test1", topFilms.getFirst().getName());
+    @Test
+    void shouldThrowWhenDeleteNonexistentFilm() {
+        assertThrows(NotFoundException.class, () -> filmService.delete(-1L));
+    }
 
+    @Test
+    void shouldReturnEmptyListWhenNoFilmsByGenre() {
+        assertThrows(NotFoundException.class, () -> filmService.getFilmsByGenreId(999L));
+    }
+
+    @Test
+    void shouldGetFilmsByGenreId() {
+        Film film = filmService.create(new NewFilmRequest("Comedy Film", "Funny",
+                LocalDate.of(2010, 6, 10), 120,
+                new MpaRating(1L, null), List.of(new Genre(1L, null))
+        ));
+
+        List<Film> films = filmService.getFilmsByGenreId(1L);
+
+        assertThat(films).extracting(Film::getId).contains(film.getId());
+    }
+
+    @Test
+    void shouldGetFilmsByGenreIds() {
+        Film film1 = filmService.create(new NewFilmRequest("Film A", "Desc",
+                LocalDate.of(2001, 1, 1), 110,
+                new MpaRating(1L, null), List.of(new Genre(1L, null))
+        ));
+
+        Film film2 = filmService.create(new NewFilmRequest("Film B", "Desc",
+                LocalDate.of(2002, 2, 2), 115,
+                new MpaRating(1L, null), List.of(new Genre(2L, null))
+        ));
+
+        List<Film> films = filmService.getFilmsByGenreIds(List.of(1L, 2L));
+
+        assertThat(films).extracting(Film::getId).contains(film1.getId(), film2.getId());
+    }
+
+    @Test
+    void shouldGetFilmsByMpaId() {
+        Film film = filmService.create(new NewFilmRequest("Rated G", "Family",
+                LocalDate.of(2005, 3, 3), 95,
+                new MpaRating(1L, null), null));
+        Film film1 = filmService.create(new NewFilmRequest("Rated G", "Family",
+                LocalDate.of(2005, 3, 3), 95,
+                new MpaRating(1L, null), null));
+
+        List<Film> films = filmService.getFilmsByMpaRatingId(1L);
+
+        assertThat(films).extracting(Film::getId).contains(film.getId()).contains(film1.getId());
     }
 }
